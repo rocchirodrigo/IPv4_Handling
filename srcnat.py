@@ -1,6 +1,6 @@
 # Simple src-nat implementation
 from math import log2
-from ipaddress import *
+from ipaddress import IPv4Network, ip_network
 
 
 def welcome_text():
@@ -43,7 +43,7 @@ divisor = private_pool.num_addresses / public_pool.num_addresses
 expo = log2(divisor)
 new_mask = int(32 - expo)
 
-my_list = list(ip_network(str(private_pool.with_prefixlen)).subnets(new_prefix=new_mask))
+private_subnet = list(ip_network(str(private_pool.with_prefixlen)).subnets(new_prefix=new_mask))
 index = 0  # needed to loop through the private subnets
 
 # Writing code on the file
@@ -66,13 +66,8 @@ with open(file="nat-simples.rsc", mode='w') as output_file:
     # src-nat rules
     print(file=output_file)
     print("/ip firewall nat", file=output_file)
-    for ip in public_pool:
-        try:
-            print("add action=src-nat chain=srcnat src-address={0} to-addresses={1}".format(ip, my_list[index]),
-                  file=output_file)
-            index += 1
-        except IndexError:
-            print("Error")
-            break
+    for (ip1, ip2) in zip(private_subnet, public_pool):
+        print("add action=src-nat chain=srcnat src-address={0} to-addresses={1}".format(ip1, ip2),
+              file=output_file)
 
 print("src-nat stored in the file: {}".format(output_file.name))
